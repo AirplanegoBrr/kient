@@ -1,7 +1,7 @@
 import type { KientScope } from '../authentication/scopes'
 import { flatten, type Flattened } from '../util/flatten'
 
-type TokenDataParams = Omit<Flattened<Token>, 'scopes' | 'isAppToken'>
+type TokenDataParams = Omit<Flattened<Token>, 'scopes' | 'isAppToken' | 'isExpired' | 'expiresAt'>
 
 /**
  * Response when generating an authorisation token
@@ -34,6 +34,13 @@ export class Token {
 	 */
 	scope?: string
 
+	/**
+	 * The extact date the access token expires
+	 */
+	expiresAt: Date
+
+	refreshFunction?: Function
+
 	/** @internal */
 	constructor(data: TokenDataParams) {
 		this.accessToken = data.accessToken
@@ -41,6 +48,8 @@ export class Token {
 		this.refreshToken = data.refreshToken
 		this.expiresIn = data.expiresIn
 		this.scope = data.scope
+		this.expiresAt = new Date(new Date().getTime() + ((this.expiresIn - 5) * 1000)) // -5 seconds for some buffer
+		this.refreshFunction = data.refreshFunction
 	}
 
 	/**
@@ -55,6 +64,26 @@ export class Token {
 	 */
 	get isAppToken() {
 		return !this.scope || !this.refreshToken
+	}
+
+	/**
+	 * Returns true if the token is expired
+	 */
+	get isExpired() {
+		return Date.now() >= this.expiresAt.getTime();
+	}
+
+	/**
+	 * Gets new token- will update self to updated token and return new token
+	 */
+	async getNewToken(): Promise<Token | null> {
+		// TODO: If the user passes in a clientID and clientSecret then we can refresh manully here
+		if (this.refreshFunction) {
+			let newToken = await this.refreshFunction();
+			Object.assign(this, newToken);
+			return newToken;
+		}
+		return null;
 	}
 
 	toJSON() {

@@ -49,6 +49,20 @@ export class KientUserTokenAuthentication {
 		this.params = params
 	}
 
+	private _createToken(req: TokenResponse) {
+		const token = new Token({
+			accessToken: req.access_token,
+			tokenType: req.token_type,
+			refreshToken: req.refresh_token,
+			expiresIn: req.expires_in,
+			scope: req.scope,
+			refreshFunction: this.refeshToken.bind(this)
+		});
+		Object.defineProperty(token, "refreshFunction", { enumerable: false });
+		return token;
+	}
+
+
 	constructAuthoriseUrl(params: KientUserAuthoriseParams) {
 		const state = params.state ?? nanoid()
 		let verifier = params.codeVerifier
@@ -91,15 +105,9 @@ export class KientUserTokenAuthentication {
 				'Content-Type': 'application/x-www-form-urlencoded',
 			},
 			body: tokenParams.toString(),
-		})
+		});
 
-		return new Token({
-			accessToken: req.access_token,
-			tokenType: req.token_type,
-			refreshToken: req.refresh_token,
-			expiresIn: req.expires_in,
-			scope: req.scope,
-		})
+		return this._createToken(req);
 	}
 
 	async refeshToken(params: KientUserRefreshTokenParams) {
@@ -118,13 +126,7 @@ export class KientUserTokenAuthentication {
 			body: refreshParams.toString(),
 		})
 
-		return new Token({
-			accessToken: req.access_token,
-			tokenType: req.token_type,
-			refreshToken: req.refresh_token,
-			expiresIn: req.expires_in,
-			scope: req.scope,
-		})
+		return this._createToken(req);
 	}
 
 	// TODO: Endpoint currently not working

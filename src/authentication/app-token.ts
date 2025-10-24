@@ -36,8 +36,6 @@ export class KientAppTokenAuthentication {
 			body: tokenParams.toString(),
 		})
 
-    console.log(req)
-
 		return new Token({
 			accessToken: req.access_token,
 			tokenType: req.token_type,

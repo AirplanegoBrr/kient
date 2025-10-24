@@ -11,6 +11,7 @@ import { WebhookServer } from './webhook.server'
 import { WebhookHandler } from './webhook.handler'
 import type { WebhookEvent } from './structures/base-event'
 import { EventAPI } from './api/events'
+import { Token } from './structures/token'
 
 type DeepPartial<T> = T extends object ? { [P in keyof T]?: DeepPartial<T[P]> } : T
 
@@ -38,6 +39,7 @@ export class Kient extends EventEmitter<KientEventEmitters> {
 	_webhookHandler: WebhookHandler
 	_apiClient: APIClient
 	_kickPublicKey?: string
+	_token?: Token
 
 	constructor(options?: DeepPartial<KientOptions>) {
 		super()
@@ -55,12 +57,40 @@ export class Kient extends EventEmitter<KientEventEmitters> {
 		this._webhookServer = new WebhookServer(this)
 	}
 
+
+	/**
+	 * @deprecated Please use kient.setToken and the auth helpers in kient!
+	 */
 	async setAuthToken(token: string) {
 		this._apiClient.setHeaders({
 			Authorization: `Bearer ${token}`,
 		})
 
 		this._kickPublicKey = await this.api.misc.getPublicKey()
+	}
+
+	async setToken(token: Token) {
+		this._token = token;
+
+		this._apiClient.setHeaders({
+			Authorization: `Bearer ${token.accessToken}`,
+		})
+
+		this._kickPublicKey = await this.api.misc.getPublicKey()
+	}
+
+	/**
+	 * Will refresh the token if required (Only works if kient.setToken was used), returns if the token was updated- or null if no token was found
+	 */
+	async checkToken() {
+		if (this._token) {
+			if (this._token.isExpired) {
+				await this._token.getNewToken();
+				return true;
+			}
+			return false;
+		}
+		return null;
 	}
 
 	get webhookServerFetch() {
