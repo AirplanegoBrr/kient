@@ -30,7 +30,7 @@ interface KientUserTokenRevoke {
 	type: 'access_token' | 'refresh_token'
 }
 
-interface TokenResponse {
+export interface TokenRawResponse {
 	access_token: string
 	token_type: 'Bearer'
 	refresh_token: string
@@ -49,7 +49,7 @@ export class KientUserTokenAuthentication {
 		this.params = params
 	}
 
-	private _createToken(req: TokenResponse) {
+	public createToken(req: TokenRawResponse) {
 		const token = new Token({
 			accessToken: req.access_token,
 			tokenType: req.token_type,
@@ -61,7 +61,6 @@ export class KientUserTokenAuthentication {
 		Object.defineProperty(token, "refreshFunction", { enumerable: false });
 		return token;
 	}
-
 
 	constructAuthoriseUrl(params: KientUserAuthoriseParams) {
 		const state = params.state ?? nanoid()
@@ -99,7 +98,7 @@ export class KientUserTokenAuthentication {
 			code_verifier: params.codeVerifier,
 		})
 
-		const req = await ofetch<TokenResponse>(KICK_TOKEN_ENDPOINT, {
+		const req = await ofetch<TokenRawResponse>(KICK_TOKEN_ENDPOINT, {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/x-www-form-urlencoded',
@@ -107,7 +106,7 @@ export class KientUserTokenAuthentication {
 			body: tokenParams.toString(),
 		});
 
-		return this._createToken(req);
+		return this.createToken(req);
 	}
 
 	async refeshToken(params: KientUserRefreshTokenParams) {
@@ -118,7 +117,7 @@ export class KientUserTokenAuthentication {
 			grant_type: 'refresh_token',
 		})
 
-		const req = await ofetch<TokenResponse>(KICK_TOKEN_ENDPOINT, {
+		const req = await ofetch<TokenRawResponse>(KICK_TOKEN_ENDPOINT, {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/x-www-form-urlencoded',
@@ -126,7 +125,7 @@ export class KientUserTokenAuthentication {
 			body: refreshParams.toString(),
 		})
 
-		return this._createToken(req);
+		return this.createToken(req);
 	}
 
 	// TODO: Endpoint currently not working
